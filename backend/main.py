@@ -170,10 +170,9 @@ def get_all_resumes(
     result = []
     for resume in resumes:
         # Find if this resume is linked to any job application
-        # for jobs posted by this recruiter
-        application = db.query(Application).join(Job).filter(
-            Application.resume_id == resume.id,
-            Job.recruiter_id == current_user.id
+        # (for ANY job, not just this recruiter's jobs)
+        application = db.query(Application).filter(
+            Application.resume_id == resume.id
         ).first()
         
         resume_data = {
@@ -252,10 +251,11 @@ def get_my_jobs(
 ):
     if current_user.role != "recruiter":
         raise HTTPException(
-            status_code=403, detail="Only recruiters can view their jobs"
+            status_code=403, detail="Only recruiters can view jobs"
         )
     
-    jobs = db.query(Job).filter(Job.recruiter_id == current_user.id).all()
+    # Get ALL jobs (not just this recruiter's jobs)
+    jobs = db.query(Job).all()
     
     # Format response with application count
     result = []
@@ -299,10 +299,8 @@ def update_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    if job.recruiter_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You can only update your own jobs"
-        )
+    # Any recruiter can update any job (same company)
+    # Removed: if job.recruiter_id != current_user.id: check
     
     # Update fields
     update_data = job_data.model_dump(exclude_unset=True)
@@ -329,10 +327,8 @@ def delete_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    if job.recruiter_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You can only delete your own jobs"
-        )
+    # Any recruiter can delete any job (same company)
+    # Removed: if job.recruiter_id != current_user.id: check
     
     db.delete(job)
     db.commit()
@@ -350,15 +346,13 @@ def get_job_applications(
             status_code=403, detail="Only recruiters can view applications"
         )
     
-    # Verify job belongs to recruiter
+    # Verify job exists
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    if job.recruiter_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You can only view applications for your own jobs"
-        )
+    # Any recruiter can view applications for any job (same company)
+    # Removed: if job.recruiter_id != current_user.id: check
     
     applications = db.query(Application).filter(Application.job_id == job_id).all()
     
