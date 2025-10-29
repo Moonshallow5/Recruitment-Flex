@@ -1,13 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from config import settings
 
-# SQLite database for simplicity, can be changed to PostgreSQL/MySQL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./recruitment.db"
+# Use DATABASE_URL from settings. Example for Postgres:
+# postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DBNAME
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# Engine creation: only pass sqlite-specific args when using sqlite
+engine_kwargs = {}
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
